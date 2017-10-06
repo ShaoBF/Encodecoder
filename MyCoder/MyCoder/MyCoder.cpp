@@ -36,20 +36,45 @@ char* TCHAR2char(TCHAR* tchStr)
     return chRtn;
 }
 
+CodedData* Encode(char* srcPath, char* destPath, int codeType){
+    FileIO fio;
+    //生成编码器
+    DataCoder* coder = CoderFactory::CreateCoder(codeType);//new HuffmanCoder();
+    //输入数据
+    char* string = fio.InputTextData(srcPath);
+    //编码
+    CodedData* codedData = coder->Encode(string);
+    fio.OutputCodedData(codedData, destPath);
+    return codedData;
+}
+char* Decode(char* srcPath, char* destPath, int codeType){
+    FileIO fio;
+    //生成编码器
+    DataCoder* coder = CoderFactory::CreateCoder(codeType);//new HuffmanCoder();
+    //输入数据
+    CodedData* codedData = fio.InputCodedData(srcPath);
+    //解码
+    char* string = coder->Decode(codedData);
+    fio.OutputTextData(string, destPath);
+    return string;
+}
+
 int _tmain(int argc, _TCHAR* argv[])
 {
-    char* string;
-    if (argc < 3){
-        printf("Usage: \n\t%s srcFile destFile CodeType(1=Huffman,2=Shannon-Fano)", TCHAR2char(argv[0]));
+    if (argc < 4){
+        printf("Usage: \n\t%s e|d(e=encode d=decode) srcFile destFile CodeType(1=Huffman 2=Shannon-Fano)", TCHAR2char(argv[0]));
         //system("pause");
         exit(1);
     }
     int codeType = HUFFMAN;
-    char* filePath = TCHAR2char(argv[1]);//"D:\\ShaoBF\\test.txt";
-    char* destFile = TCHAR2char(argv[2]);// "D:\\ShaoBF\\test.hfm";
-    if (argc > 3){
+    //获取操作选项
+    char* option = TCHAR2char(argv[1]);
+    option = _strlwr(option);
+    char* srcPath = TCHAR2char(argv[2]);//"D:\\ShaoBF\\test.txt";
+    char* destPath = TCHAR2char(argv[3]);// "D:\\ShaoBF\\test.hfm";
+    if (argc > 4){
         //取编码方式(1=Huffman,2=Shannon-Fano)
-        char* typestr = TCHAR2char(argv[3]);
+        char* typestr = TCHAR2char(argv[4]);
         codeType = atoi(typestr);
         if (codeType != HUFFMAN){
             printf("Code type %s not available for now.\nSorry!\n", typestr);
@@ -57,26 +82,26 @@ int _tmain(int argc, _TCHAR* argv[])
             exit(1);
         }
     }
-    FileIO fio;
-
-    //输入数据
-    string = fio.InputTextData(filePath);
-
-    //霍夫曼编码
-    DataCoder* coder = CoderFactory::CreateCoder(codeType);//new HuffmanCoder();
-    CodedData* codedData = coder->Encode(string);
-    char* decodedText = coder->Decode(codedData);
-
-    //输出结果
+    CodedData* codedData;
+    char* decodedText;
     StandardIO sio;
-    sio.OutputCodedData(codedData, "");
-    printf("AverageCodeLength = %.3f\n\n", codedData->table->AverageCodeLength());
-    printf("Decoded form coded text.txt as below:\n%s\n\n", decodedText);
 
-    fio.OutputCodedData(codedData, destFile);
-    CodedData* testData = fio.InputCodedData(destFile);
-    char* decodedText2 = coder->Decode(testData);
-    printf("Decoded test.hfm text as below:\n%s\n", decodedText2);
+    //如果是E操作，读入文本文档，编码，输出二进制文档
+    if (strcmp(option,"e")==0){
+        codedData=Encode(srcPath, destPath, codeType);
+        //输出到屏幕
+        sio.OutputCodedData(codedData, "");
+        printf("AverageCodeLength = %.3f\n\n", codedData->table->AverageCodeLength());
+        
+        //printf("Decoded form coded text.txt as below:\n%s\n\n", decodedText);
+    }
+    else if (strcmp(option, "d") == 0){
+        decodedText = Decode(srcPath, destPath, codeType);
+        //输出到屏幕
+        printf("Decoded test.hfm text as below:\n");
+        sio.OutputTextData(decodedText, "");
+        printf("\n");
+    }
     system("pause");
     return 0;
 }
